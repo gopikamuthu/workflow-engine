@@ -1,567 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Workflow Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── DARK THEME (default) ── */
 :root{
-  --bg:#f9f8f6;--bg2:#ffffff;--bg3:#f1f0ec;
-  --text:#1a1a18;--text2:#6b6a65;--text3:#9b9a95;
-  --border:#e0ded8;--border2:#cccac4;
-  --blue:#1a56db;--blue-bg:#eef3fd;--blue-text:#1e429f;
-  --green:#057a55;--green-bg:#edfcf2;--green-text:#014737;
-  --amber:#b45309;--amber-bg:#fffbeb;--amber-text:#78350f;
-  --red:#e02424;--red-bg:#fdf2f2;--red-text:#771d1d;
-  --radius:8px;--radius-lg:12px;
+  --bg:#09090f;--bg2:#0e0e1c;--bg3:#131326;
+  --surface:#16162e;--surface2:#1c1c38;
+  --border:rgba(100,100,220,0.13);--border2:rgba(100,100,220,0.28);
+  --text:#e4e2ff;--muted:#8884b8;--hint:#55527a;
+  --blue:#5b9bf8;--blue-bg:rgba(91,155,248,0.1);--blue-glow:rgba(91,155,248,0.28);
+  --pink:#f472b6;--pink-bg:rgba(244,114,182,0.1);--pink-glow:rgba(244,114,182,0.28);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);
+  --green:#34d399;--green-bg:rgba(52,211,153,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --radius:10px;--radius-lg:14px;
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+  --sidebar-w:220px;
+  --topbar-bg:rgba(9,9,15,0.9);
+  --grid-line:rgba(91,155,248,0.025);
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:var(--text);background:var(--bg);min-height:100vh}
-.app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:210px;min-width:210px;border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column}
-.logo{padding:18px 16px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;color:var(--text)}
-.logo svg{width:20px;height:20px;flex-shrink:0}
-.nav-item{padding:10px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:9px;color:var(--text2);border-left:2px solid transparent;transition:all .12s}
-.nav-item:hover{background:var(--bg3);color:var(--text)}
-.nav-item.active{background:var(--bg3);color:var(--text);border-left-color:var(--text);font-weight:500}
-.main{flex:1;overflow:auto;display:flex;flex-direction:column}
-.topbar{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:10}
-.topbar h2{font-size:15px;font-weight:600}
-.content{padding:20px}
-.btn{padding:7px 14px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;font-size:13px;background:var(--bg2);color:var(--text);transition:all .12s;font-family:inherit}
-.btn:hover{background:var(--bg3)}
-.btn-primary{background:var(--text);color:var(--bg2);border-color:var(--text)}
-.btn-primary:hover{opacity:.85;background:var(--text)}
-.btn-sm{padding:4px 10px;font-size:12px}
-.btn-danger{border-color:#fca5a5;color:var(--red)}
-.btn-danger:hover{background:var(--red-bg)}
-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-th{text-align:left;padding:10px 14px;background:var(--bg3);font-weight:500;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
-td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--bg3)}
-.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
-.badge-green{background:var(--green-bg);color:var(--green-text)}
-.badge-blue{background:var(--blue-bg);color:var(--blue-text)}
-.badge-amber{background:var(--amber-bg);color:var(--amber-text)}
-.badge-red{background:var(--red-bg);color:var(--red-text)}
-.badge-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:100}
-.modal{background:var(--bg2);border-radius:var(--radius-lg);border:1px solid var(--border);width:640px;max-width:95vw;max-height:90vh;overflow:auto}
-.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg2);z-index:5}
-.modal-header h3{font-size:15px;font-weight:600}
-.modal-body{padding:20px}
-.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--bg2)}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
-input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;background:var(--bg2);color:var(--text);outline:none;font-family:inherit}
-input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
-.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
-.tab{padding:9px 16px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s}
-.tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
-.step-card{border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;background:var(--bg3)}
-.rule-grid{display:grid;grid-template-columns:56px 1fr 1fr 28px;gap:8px;align-items:center;margin-bottom:6px}
-.schema-grid{display:grid;grid-template-columns:1fr 100px 90px 1fr 28px;gap:8px;align-items:center;margin-bottom:6px}
-.chip{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:monospace}
-.exec-step{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;background:var(--bg3)}
-.exec-step.done{border-color:#a7f3d0;background:var(--green-bg)}
-.exec-step.failed{border-color:#fca5a5;background:var(--red-bg)}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
-.dot-done{background:var(--green)}
-.dot-failed{background:var(--red)}
-.dot-pending{background:var(--text3)}
-.rule-eval{font-size:11px;font-family:monospace;padding:2px 0;display:flex;align-items:center;gap:5px;color:var(--text2)}
-.rule-eval.matched{color:var(--green)}
-.empty{text-align:center;padding:48px 20px;color:var(--text2)}
-.api-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-family:monospace;font-weight:600;margin-right:6px}
-.method-get{background:#dbeafe;color:#1e3a8a}
-.method-post{background:#d1fae5;color:#064e3b}
-.method-put{background:#fef3c7;color:#78350f}
-.method-delete{background:#fee2e2;color:#7f1d1d}
-.api-endpoint{padding:7px 12px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:6px;font-size:12px;font-family:monospace;display:flex;align-items:center}
-.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:12px}
-.alert-error{background:var(--red-bg);color:var(--red-text);border:1px solid #fca5a5}
-.alert-success{background:var(--green-bg);color:var(--green-text);border:1px solid #6ee7b7}
-.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
-.sum-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
-.sum-label{font-size:11px;color:var(--text2);margin-bottom:4px}
-.sum-val{font-size:18px;font-weight:600}
+
+/* ── LIGHT THEME ── */
+:root[data-theme="light"]{
+  --bg:#f5f5f7;--bg2:#ffffff;--bg3:#f0f0f5;
+  --surface:#ffffff;--surface2:#f8f8fc;
+  --border:rgba(100,100,180,0.15);--border2:rgba(100,100,180,0.3);
+  --text:#1a1a2e;--muted:#5a5a7a;--hint:#9a9ab0;
+  --blue:#3b7dd8;--blue-bg:rgba(59,125,216,0.08);--blue-glow:rgba(59,125,216,0.2);
+  --pink:#d4519a;--pink-bg:rgba(212,81,154,0.08);--pink-glow:rgba(212,81,154,0.2);
+  --red:#dc2626;--red-bg:rgba(220,38,38,0.08);
+  --green:#059669;--green-bg:rgba(5,150,105,0.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,0.08);
+  --topbar-bg:rgba(245,245,247,0.95);
+  --grid-line:rgba(100,100,180,0.04);
+}
+
+/* ── Theme transition ── */
+body,body *{transition:background-color .25s,border-color .25s,color .25s,box-shadow .25s!important}
+
+/* ── Theme toggle ── */
+.theme-toggle{width:38px;height:38px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.theme-toggle:hover{background:var(--surface2);border-color:var(--blue);transform:rotate(20deg)}
+
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;height:100vh;display:flex;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:relative;z-index:10;transition:transform .3s}
+.sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(180deg,transparent 0%,var(--blue) 35%,var(--pink) 65%,transparent 100%);opacity:.5}
+.logo{padding:20px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--pink));display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 18px var(--blue-glow),0 0 36px rgba(244,114,182,.15)}
+.logo-text{font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav{flex:1;padding:10px 8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;font-size:13px;color:var(--muted);border-radius:var(--radius);border-left:2px solid transparent;transition:all .2s;margin-bottom:3px}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(91,155,248,.18),rgba(244,114,182,.07));color:var(--blue);border-left-color:var(--blue);font-weight:600}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.status-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 10px}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hamburger{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:18px;color:var(--text)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9;backdrop-filter:blur(4px)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;min-width:0}
+.topbar{padding:14px 24px;background:var(--topbar-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;flex-wrap:wrap}
+.topbar-title{font-size:16px;font-weight:700;color:var(--text)}
+.topbar-sub{font-size:11px;color:var(--hint);margin-top:1px}
+.topbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.content{flex:1;overflow:auto;padding:22px}
+.content::-webkit-scrollbar{width:3px}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.btn{padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;background:var(--surface);color:var(--text);transition:all .2s;font-family:var(--font);white-space:nowrap}
+.btn:hover{border-color:var(--blue);background:var(--surface2);transform:translateY(-1px)}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--blue),#7c6af7);color:#fff;border:none;box-shadow:0 4px 16px var(--blue-glow)}
+.btn-primary:hover{filter:brightness(1.12);box-shadow:0 6px 22px var(--blue-glow);border:none}
+.btn-pink{background:linear-gradient(135deg,var(--pink),#c084fc);color:#fff;border:none;box-shadow:0 4px 16px var(--pink-glow)}
+.btn-pink:hover{filter:brightness(1.12);box-shadow:0 6px 22px var(--pink-glow);border:none}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{color:var(--red);border-color:rgba(248,113,113,.22);background:transparent}
+.btn-danger:hover{background:var(--red-bg);border-color:var(--red)}
+.btn-info{color:var(--blue);border-color:rgba(91,155,248,.25);background:transparent}
+.btn-info:hover{background:var(--blue-bg);border-color:var(--blue)}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{color:var(--text);border-color:var(--blue)}
+
+.search-box{position:relative}
+.search-box input{padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--surface);color:var(--text);outline:none;width:200px;font-family:var(--font);transition:all .2s}
+.search-box input:focus{border-color:var(--blue);background:var(--surface2);box-shadow:0 0 0 3px var(--blue-bg);width:240px}
+.search-box input::placeholder{color:var(--hint)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:13px;pointer-events:none}
+
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
+thead th{text-align:left;padding:11px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.1em}
+tbody td{padding:13px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(91,155,248,.04)}
+
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.badge-blue{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(91,155,248,.2)}
+.badge-pink{background:var(--pink-bg);color:var(--pink);border:1px solid rgba(244,114,182,.2)}
+.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.badge-gray{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:var(--mono)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:12px;transition:border-color .2s}
+.card-sm{padding:13px 15px}
+.card-glow{border-color:rgba(91,155,248,.3);box-shadow:0 0 28px rgba(91,155,248,.07)}
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.metric{background:var(--bg3);border-radius:var(--radius);padding:14px;border:1px solid var(--border);position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--pink))}
+.metric-label{font-size:10px;color:var(--hint);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.metric-val{font-size:20px;font-weight:700}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:200;padding:12px}
+.modal{background:var(--bg2);border-radius:var(--radius-lg);border:1px solid var(--border2);width:660px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(91,155,248,.08)}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:linear-gradient(135deg,rgba(91,155,248,.06),rgba(244,114,182,.03))}
+.modal-head h3{font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.modal-body{padding:22px;overflow:auto;flex:1}
+.modal-body::-webkit-scrollbar{width:3px}
+.modal-body::-webkit-scrollbar-thumb{background:var(--border2)}
+.modal-foot{padding:15px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+.form-group{margin-bottom:15px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--surface);color:var(--text);outline:none;font-family:var(--font);transition:all .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--blue);background:var(--surface2);box-shadow:0 0 0 3px var(--blue-bg)}
+.form-group input::placeholder{color:var(--hint)}
+.form-group select option{background:var(--bg2);color:var(--text)}
+
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;gap:4px;overflow-x:auto}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;border-radius:8px 8px 0 0;font-weight:500;white-space:nowrap}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-bg)}
+.tab:hover:not(.active){color:var(--text);background:var(--surface)}
+
+.step-card{border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;background:var(--bg3);transition:border-color .2s}
+.step-card:hover{border-color:var(--border2)}
+.step-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.step-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--pink));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+
+.rule-grid{display:grid;grid-template-columns:55px 1fr 1fr 28px;gap:8px;align-items:center;margin-bottom:8px}
+.schema-grid{display:grid;grid-template-columns:1fr 90px 80px 130px 28px;gap:8px;align-items:center;margin-bottom:8px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+.exec-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .2s;background:var(--surface)}
+.exec-card:hover{border-color:rgba(91,155,248,.4);transform:translateY(-1px);box-shadow:0 4px 20px rgba(91,155,248,.1)}
+
+.flow-step{border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;background:var(--surface);transition:all .3s}
+.flow-step.pending{opacity:.3}
+.flow-step.running{border-color:var(--blue);background:rgba(91,155,248,.08);box-shadow:0 0 24px rgba(91,155,248,.15)}
+.flow-step.done{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.06)}
+.flow-step.failed{border-color:rgba(248,113,113,.4);background:var(--red-bg)}
+.flow-arrow{height:28px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--hint);transition:all .3s}
+.flow-arrow.active{color:var(--green)}
+.rule-pill{font-size:11px;font-family:var(--mono);padding:3px 0;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.rule-pill.matched{color:var(--green)}
+.rule-pill.no-match{text-decoration:line-through;opacity:.4}
+.r-dot{width:6px;height:6px;border-radius:50%;background:var(--hint);flex-shrink:0}
+.r-dot.matched{background:var(--green);box-shadow:0 0 6px var(--green)}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(91,155,248,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--hint);font-size:13px}
+.action-row{display:flex;gap:5px;flex-wrap:wrap}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.content>*{animation:fadeUp .25s ease both}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  body{display:block;height:100vh;overflow:hidden}
+  .hamburger{display:flex;align-items:center;justify-content:center}
+  .sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);z-index:150}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .main{height:100vh;display:flex;flex-direction:column;margin-left:0}
+  .topbar{padding:12px 16px;padding-left:56px}
+  .metric-grid{grid-template-columns:1fr 1fr}
+  .two-col{grid-template-columns:1fr}
+  .rule-grid{grid-template-columns:40px 1fr 1fr 26px}
+  .schema-grid{grid-template-columns:1fr 1fr;row-gap:6px}
+}
+@media(max-width:480px){
+  .topbar{padding:10px 12px;padding-left:50px}
+  .content{padding:10px}
+  .metric-grid{grid-template-columns:1fr}
+  .action-row{flex-direction:column}
+  .action-row .btn{width:100%}
+}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="sidebar">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-      Workflow Engine
-    </div>
-    <div class="nav-item active" onclick="showPage('workflows')" id="nav-workflows">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-      Workflows
-    </div>
-    <div class="nav-item" onclick="showPage('executions')" id="nav-executions">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      Executions
-    </div>
-    <div class="nav-item" onclick="showPage('audit')" id="nav-audit">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      Audit Log
-    </div>
-    <div class="nav-item" onclick="showPage('api')" id="nav-api">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      API Docs
+
+<button class="hamburger" onclick="toggleSidebar()">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    <span class="logo-text">Workflow Engine</span>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" data-page="workflows" onclick="switchPage('workflows')"><span class="nav-icon">☰</span>Workflows</div>
+    <div class="nav-item" data-page="execute" onclick="switchPage('execute')"><span class="nav-icon">▶</span>Execute</div>
+    <div class="nav-item" data-page="executions" onclick="switchPage('executions')"><span class="nav-icon">⟳</span>Executions</div>
+    <div class="nav-item" data-page="audit" onclick="switchPage('audit')"><span class="nav-icon">◫</span>Audit Log</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="status-pill"><div class="dot-live"></div>Engine Running</div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle Light/Dark">🌙</button>
     </div>
   </div>
-  <div class="main" id="main"></div>
-</div>
+</aside>
+
+<main class="main" id="main"></main>
 <div id="modal-root"></div>
 
 <script>
-const API = 'http://localhost:3000';
-let page = 'workflows';
-let searchQ = '';
-let editWf = null;
+const API='/api';
+let currentPage='workflows',searchQ='';
+let edWf=null,edTab='info';
 
-async function api(method, path, body) {
-  try {
-    const res = await fetch(API + path, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: body ? JSON.stringify(body) : undefined
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Request failed: ' + res.status);
-    }
-    return await res.json();
-  } catch (e) {
-    if (e.message.includes('fetch')) throw new Error('Cannot connect to API. Is the server running on port 3000?');
-    throw e;
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebarOnNav(){
+  if(window.innerWidth<=768){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
   }
 }
 
-function showPage(p) {
-  page = p;
-  ['workflows','executions','audit','api'].forEach(n => {
-    document.getElementById('nav-' + n).classList.toggle('active', n === p);
-  });
-  render();
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const root=document.documentElement;
+  const btn=document.getElementById('theme-btn');
+  const isLight=root.getAttribute('data-theme')==='light';
+  if(isLight){root.removeAttribute('data-theme');btn.textContent='🌙';localStorage.setItem('wf-theme','dark');}
+  else{root.setAttribute('data-theme','light');btn.textContent='☀️';localStorage.setItem('wf-theme','light');}
+}
+(function(){
+  const saved=localStorage.getItem('wf-theme');
+  if(saved==='light'){document.documentElement.setAttribute('data-theme','light');const b=document.getElementById('theme-btn');if(b)b.textContent='☀️';}
+})();
+
+async function api(method,path,body){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(API+path,opts);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||r.statusText);}
+  return r.json();
+}
+function switchPage(page){
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+  closeSidebarOnNav();render();
+}
+async function render(){
+  const m=document.getElementById('main');
+  try{
+    if(currentPage==='workflows')await renderWorkflows(m);
+    if(currentPage==='execute')await renderExecuteUI(m);
+    if(currentPage==='executions')await renderExecutions(m);
+    if(currentPage==='audit')await renderAudit(m);
+  }catch(e){m.innerHTML=`<div style="padding:20px"><div style="background:var(--red-bg);color:var(--red);padding:12px;border-radius:10px;border:1px solid rgba(248,113,113,.3)">⚠️ ${e.message}</div></div>`;}
 }
 
-async function render() {
-  const main = document.getElementById('main');
-  main.innerHTML = '<div class="content"><div class="empty">Loading…</div></div>';
-  try {
-    if (page === 'workflows')  await renderWorkflows(main);
-    if (page === 'executions') await renderExecutions(main);
-    if (page === 'audit')      await renderAudit(main);
-    if (page === 'api')        renderApiDocs(main);
-  } catch (e) {
-    main.innerHTML = `<div class="content"><div class="alert alert-error">${e.message}</div></div>`;
-  }
+async function renderWorkflows(m){
+  const {data:wfs}=await api('GET',`/workflows?search=${encodeURIComponent(searchQ)}`);
+  m.innerHTML=`<div class="topbar"><div><div class="topbar-title">Workflows</div><div class="topbar-sub">${wfs.length} workflow${wfs.length!==1?'s':''} configured</div></div><div class="topbar-actions"><div class="search-box"><span class="search-icon">🔍</span><input placeholder="Search..." value="${searchQ}" oninput="searchQ=this.value;render()"></div><button class="btn btn-pink btn-sm" onclick="openWorkflowModal(null)">+ New Workflow</button></div></div>
+  <div class="content"><div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Steps</th><th>Version</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+  ${!wfs.length?'<tr><td colspan="6"><div class="empty-state">No workflows yet. Create your first one!</div></td></tr>':''}
+  ${wfs.map(w=>`<tr><td><span class="chip">${w.id}</span></td><td style="font-weight:600">${w.name}</td><td style="color:var(--blue);font-weight:600">${(w.steps||[]).length}</td><td style="color:var(--muted)">v${w.version}</td><td><span class="badge ${w.is_active?'badge-green':'badge-gray'}">${w.is_active?'Active':'Inactive'}</span></td><td><div class="action-row"><button class="btn btn-info btn-sm" onclick="openWorkflowModal('${w.id}')">Edit</button><button class="btn btn-primary btn-sm" onclick="quickExecute('${w.id}')">▶ Run</button><button class="btn btn-danger btn-sm" onclick="deleteWf('${w.id}')">Delete</button></div></td></tr>`).join('')}
+  </tbody></table></div></div>`;
 }
+async function deleteWf(id){if(!confirm('Delete this workflow?'))return;await api('DELETE',`/workflows/${id}`);render();}
+async function quickExecute(id){openExecuteModal(await api('GET',`/workflows/${id}`));}
 
-// ─── WORKFLOWS PAGE ─────────────────────────────────────────────────────────
-async function renderWorkflows(main) {
-  const data = await api('GET', '/workflows?search=' + encodeURIComponent(searchQ));
-  const wfs = data.data || [];
-
-  main.innerHTML = `
-  <div class="topbar">
-    <h2>Workflows</h2>
-    <div style="display:flex;gap:8px">
-      <input style="width:200px" placeholder="Search workflows…" value="${searchQ}" oninput="searchQ=this.value;render()">
-      <button class="btn btn-primary btn-sm" onclick="openCreate()">+ New Workflow</button>
-    </div>
-  </div>
-  <div class="content">
-    <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Steps</th><th>Version</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>
-        ${wfs.length === 0 ? `<tr><td colspan="6"><div class="empty">No workflows found</div></td></tr>` : ''}
-        ${wfs.map(w => `
-        <tr>
-          <td><span class="chip">${w.id}</span></td>
-          <td style="font-weight:500">${w.name}</td>
-          <td>${w.step_count || 0}</td>
-          <td>v${w.version}</td>
-          <td><span class="badge ${w.is_active ? 'badge-green' : 'badge-gray'}">${w.is_active ? 'Active' : 'Inactive'}</span></td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-sm" onclick="openEdit('${w.id}')">Edit</button>
-            <button class="btn btn-sm btn-primary" onclick="openExecute('${w.id}')">Execute</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteWf('${w.id}')">Delete</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-    <div style="margin-top:10px;font-size:12px;color:var(--text2)">Total: ${data.total} workflows</div>
-  </div>`;
+async function openWorkflowModal(id){
+  edTab='info';
+  edWf=id?JSON.parse(JSON.stringify(await api('GET',`/workflows/${id}`))):
+    {id:null,name:'',is_active:true,version:1,input_schema:[],steps:[],rules:[],start_step_id:''};
+  renderWfModal();
 }
-
-// ─── CREATE / EDIT WORKFLOW ──────────────────────────────────────────────────
-function openCreate() {
-  editWf = { id: null, name: '', is_active: true, input_schema: [], steps: [], rules: [] };
-  renderWfModal('Create Workflow', 'info');
+function renderWfModal(){
+  const w=edWf;
+  showModal(`<div class="modal-head"><h3>${w.id?'Edit: '+w.name:'New Workflow'}</h3><button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button></div>
+  <div class="modal-body"><div class="tabs">${['info','steps','rules'].map(t=>`<div class="tab ${edTab===t?'active':''}" onclick="edTab='${t}';renderWfModal()">${t[0].toUpperCase()+t.slice(1)}</div>`).join('')}</div>
+  ${edTab==='info'?renderInfoTab(w):''}${edTab==='steps'?renderStepsTab(w):''}${edTab==='rules'?renderRulesTab(w):''}</div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveWf()">Save Workflow</button></div>`);
 }
-async function openEdit(id) {
-  const wf = await api('GET', '/workflows/' + id);
-  editWf = JSON.parse(JSON.stringify(wf));
-  renderWfModal('Edit: ' + wf.name, 'info');
+function renderInfoTab(w){
+  return `<div class="form-group"><label>Workflow Name *</label><input value="${w.name}" oninput="edWf.name=this.value" placeholder="e.g. Expense Approval"></div>
+  <div class="form-group"><label>Status</label><select onchange="edWf.is_active=this.value==='true'"><option value="true" ${w.is_active?'selected':''}>Active</option><option value="false" ${!w.is_active?'selected':''}>Inactive</option></select></div>
+  <hr class="sep">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Input Schema</label><button class="btn btn-pink btn-sm" onclick="edWf.input_schema.push({field:'',type:'string',required:false,allowed_values:[]});renderWfModal()">+ Field</button></div>
+  ${w.input_schema.map((f,i)=>`<div class="schema-grid"><input value="${f.field}" placeholder="field" oninput="edWf.input_schema[${i}].field=this.value"><select onchange="edWf.input_schema[${i}].type=this.value">${['string','number','boolean'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select><select onchange="edWf.input_schema[${i}].required=this.value==='true'"><option value="true" ${f.required?'selected':''}>Yes</option><option value="false" ${!f.required?'selected':''}>No</option></select><input value="${(f.allowed_values||[]).join(',')}" placeholder="a,b,c" oninput="edWf.input_schema[${i}].allowed_values=this.value.split(',').map(x=>x.trim()).filter(Boolean)"><button class="btn btn-danger btn-sm" style="padding:5px 8px" onclick="edWf.input_schema.splice(${i},1);renderWfModal()">✕</button></div>`).join('')}
+  ${!w.input_schema.length?'<div style="font-size:12px;color:var(--hint)">No fields yet.</div>':''}`;
 }
-
-function renderWfModal(title, activeTab) {
-  const w = editWf;
-  openModal(`
-  <div class="modal">
-    <div class="modal-header">
-      <h3>${title}</h3>
-      <button class="btn btn-sm" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="tabs">
-        ${['info','steps','rules'].map(t => `<div class="tab ${activeTab===t?'active':''}" onclick="switchTab('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</div>`).join('')}
-      </div>
-      ${activeTab==='info'  ? renderInfoTab(w)  : ''}
-      ${activeTab==='steps' ? renderStepsTab(w) : ''}
-      ${activeTab==='rules' ? renderRulesTab(w) : ''}
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveWf()">Save</button>
-    </div>
-  </div>`);
+function renderStepsTab(w){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:12px;color:var(--muted)">Steps execute in order unless overridden by rules.</span><button class="btn btn-primary btn-sm" onclick="addEdStep()">+ Add Step</button></div>
+  ${!w.steps.length?'<div class="empty-state">No steps yet.</div>':''}
+  ${w.steps.map((s,i)=>`<div class="step-card"><div class="step-card-header"><div style="display:flex;align-items:center;gap:8px"><div class="step-num">${i+1}</div><strong>${s.name||'Unnamed'}</strong><span class="badge ${s.step_type==='approval'?'badge-blue':s.step_type==='notification'?'badge-pink':'badge-gray'}">${s.step_type}</span></div><button class="btn btn-danger btn-sm" onclick="edWf.steps.splice(${i},1);edWf.rules=edWf.rules.filter(r=>r.step_id!=='${s.id}'&&r.next_step_id!=='${s.id}');renderWfModal()">Remove</button></div>
+  <div class="two-col"><div class="form-group" style="margin-bottom:0"><label>Step Name</label><input value="${s.name||''}" oninput="edWf.steps[${i}].name=this.value"></div><div class="form-group" style="margin-bottom:0"><label>Type</label><select onchange="edWf.steps[${i}].step_type=this.value;renderWfModal()">${['task','approval','notification'].map(t=>`<option ${s.step_type===t?'selected':''}>${t}</option>`).join('')}</select></div>
+  ${s.step_type==='approval'?`<div class="form-group" style="margin-bottom:0"><label>Assignee Email</label><input value="${(s.metadata||{}).assignee_email||''}" oninput="edWf.steps[${i}].metadata=edWf.steps[${i}].metadata||{};edWf.steps[${i}].metadata.assignee_email=this.value"></div>`:''}
+  ${s.step_type==='notification'?`<div class="form-group" style="margin-bottom:0"><label>Channel</label><select onchange="edWf.steps[${i}].metadata=edWf.steps[${i}].metadata||{};edWf.steps[${i}].metadata.notification_channel=this.value">${['email','slack','sms'].map(c=>`<option ${(s.metadata||{}).notification_channel===c?'selected':''}>${c}</option>`).join('')}</select></div>`:''}
+  </div></div>`).join('')}`;
 }
-
-function renderInfoTab(w) {
-  return `
-  <div class="form-group"><label>Workflow Name *</label><input id="wf-name" value="${w.name}" oninput="editWf.name=this.value" placeholder="e.g. Expense Approval"></div>
-  <div class="form-group"><label>Status</label>
-    <select onchange="editWf.is_active=this.value==='true'">
-      <option value="true"  ${w.is_active ? 'selected' : ''}>Active</option>
-      <option value="false" ${!w.is_active ? 'selected' : ''}>Inactive</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <label>Input Schema <button class="btn btn-sm" style="float:right;margin-top:-4px" onclick="editWf.input_schema.push({field:'',type:'string',required:false,allowed_values:[]});renderWfModal(document.querySelector('.modal-header h3').textContent,'info')">+ Field</button></label>
-    ${(w.input_schema||[]).map((f,i) => `
-    <div class="schema-grid">
-      <input value="${f.field}" placeholder="field name" oninput="editWf.input_schema[${i}].field=this.value">
-      <select onchange="editWf.input_schema[${i}].type=this.value">
-        ${['string','number','boolean'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}
-      </select>
-      <select onchange="editWf.input_schema[${i}].required=(this.value==='true')">
-        <option value="true"  ${f.required?'selected':''}>Required</option>
-        <option value="false" ${!f.required?'selected':''}>Optional</option>
-      </select>
-      <input value="${(f.allowed_values||[]).join(',')}" placeholder="allowed values (csv)" oninput="editWf.input_schema[${i}].allowed_values=this.value.split(',').map(x=>x.trim()).filter(Boolean)">
-      <button class="btn btn-sm btn-danger" onclick="editWf.input_schema.splice(${i},1);renderWfModal(document.querySelector('.modal-header h3').textContent,'info')">✕</button>
-    </div>`).join('')}
-  </div>`;
-}
-
-function renderStepsTab(w) {
-  return `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <span style="font-size:12px;color:var(--text2)">Define the steps for this workflow</span>
-    <button class="btn btn-sm btn-primary" onclick="addStep()">+ Add Step</button>
-  </div>
-  ${(w.steps||[]).map((s,i) => `
-  <div class="step-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:22px;height:22px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">${i+1}</span>
-        <span style="font-weight:500">${s.name||'Unnamed'}</span>
-        <span class="badge badge-blue">${s.step_type}</span>
-      </div>
-      <button class="btn btn-sm btn-danger" onclick="editWf.steps.splice(${i},1);renderWfModal(document.querySelector('.modal-header h3').textContent,'steps')">Remove</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label style="font-size:11px;color:var(--text2)">Name</label>
-        <input value="${s.name}" oninput="editWf.steps[${i}].name=this.value"></div>
-      <div><label style="font-size:11px;color:var(--text2)">Type</label>
-        <select onchange="editWf.steps[${i}].step_type=this.value;renderWfModal(document.querySelector('.modal-header h3').textContent,'steps')">
-          ${['task','approval','notification'].map(t=>`<option ${s.step_type===t?'selected':''}>${t}</option>`).join('')}
-        </select>
-      </div>
-      ${s.step_type==='approval'?`<div><label style="font-size:11px;color:var(--text2)">Assignee Email</label><input value="${(s.metadata||{}).assignee_email||''}" oninput="editWf.steps[${i}].metadata=editWf.steps[${i}].metadata||{};editWf.steps[${i}].metadata.assignee_email=this.value"></div>`:''}
-      ${s.step_type==='notification'?`<div><label style="font-size:11px;color:var(--text2)">Channel</label><select onchange="editWf.steps[${i}].metadata=editWf.steps[${i}].metadata||{};editWf.steps[${i}].metadata.notification_channel=this.value">${['email','slack','sms'].map(c=>`<option ${(s.metadata||{}).notification_channel===c?'selected':''}>${c}</option>`).join('')}</select></div>`:''}
-    </div>
-  </div>`).join('')}
-  ${!(w.steps||[]).length ? `<div class="empty" style="padding:20px">No steps yet</div>` : ''}`;
-}
-
-function renderRulesTab(w) {
-  return `
-  <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Rules decide the next step. Evaluated in priority order. Use <code>DEFAULT</code> as fallback.</p>
-  ${(w.steps||[]).map(step => {
-    const stepRules = (w.rules||[]).filter(r=>r.step_id===step.id).sort((a,b)=>a.priority-b.priority);
-    return `
-    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-weight:500;font-size:13px">${step.name} <span class="badge badge-blue" style="font-size:10px">${step.step_type}</span></div>
-        <button class="btn btn-sm" onclick="addRule('${step.id}')">+ Rule</button>
-      </div>
-      ${stepRules.map((r,ri) => `
-      <div class="rule-grid">
-        <input type="number" value="${r.priority}" min="1" oninput="editWf.rules.find(x=>x.id==='${r.id}').priority=parseInt(this.value)">
-        <input value="${r.condition}" placeholder="condition or DEFAULT" style="font-family:monospace;font-size:12px" oninput="editWf.rules.find(x=>x.id==='${r.id}').condition=this.value">
-        <select onchange="editWf.rules.find(x=>x.id==='${r.id}').next_step_id=this.value">
-          <option value="">— end workflow —</option>
-          ${(w.steps||[]).filter(s=>s.id!==step.id).map(s=>`<option value="${s.id}" ${r.next_step_id===s.id?'selected':''}>${s.name}</option>`).join('')}
-        </select>
-        <button class="btn btn-sm btn-danger" onclick="editWf.rules=editWf.rules.filter(x=>x.id!=='${r.id}');renderWfModal(document.querySelector('.modal-header h3').textContent,'rules')">✕</button>
-      </div>`).join('')}
-      ${!stepRules.length ? `<div style="font-size:12px;color:var(--text2);padding:4px 0">No rules — workflow ends after this step</div>` : ''}
+function renderRulesTab(w){
+  return `<p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">Use expressions like <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);color:var(--blue)">amount > 100 && country == "US"</code>. Use <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:var(--mono);color:var(--pink)">DEFAULT</code> as fallback.</p>
+  ${!w.steps.length?'<div class="empty-state">Add steps first.</div>':''}
+  ${w.steps.map(step=>{
+    const rules=w.rules.filter(r=>r.step_id===step.id).sort((a,b)=>a.priority-b.priority);
+    return `<div class="card card-sm" style="margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px"><div style="display:flex;align-items:center;gap:8px"><strong>${step.name}</strong><span class="badge ${step.step_type==='approval'?'badge-blue':step.step_type==='notification'?'badge-pink':'badge-gray'}">${step.step_type}</span></div><button class="btn btn-pink btn-sm" onclick="addEdRule('${step.id}')">+ Rule</button></div>
+    ${!rules.length?'<div style="font-size:12px;color:var(--hint)">No rules — ends after this step.</div>':''}
+    ${rules.map(r=>{const rIdx=w.rules.findIndex(x=>x.id===r.id);return `<div class="rule-grid"><input type="number" min="1" value="${r.priority}" style="font-family:var(--mono)" oninput="edWf.rules[${rIdx}].priority=parseInt(this.value)"><input value="${r.condition}" style="font-family:var(--mono);font-size:12px;color:var(--blue)" oninput="edWf.rules[${rIdx}].condition=this.value"><select onchange="edWf.rules[${rIdx}].next_step_id=this.value"><option value="">— end workflow —</option>${w.steps.filter(s=>s.id!==step.id).map(s=>`<option value="${s.id}" ${r.next_step_id===s.id?'selected':''}>${s.name}</option>`).join('')}</select><button class="btn btn-danger btn-sm" style="padding:5px 8px" onclick="edWf.rules.splice(${rIdx},1);renderWfModal()">✕</button></div>`;}).join('')}
     </div>`;
   }).join('')}`;
 }
-
-function switchTab(t) {
-  renderWfModal(document.querySelector('.modal-header h3').textContent, t);
+function addEdStep(){const id='step-'+Math.random().toString(36).slice(2,10);edWf.steps.push({id,workflow_id:edWf.id||'',name:'New Step',step_type:'task',order:edWf.steps.length+1,metadata:{}});if(!edWf.start_step_id)edWf.start_step_id=id;edTab='steps';renderWfModal();}
+function addEdRule(sid){edWf.rules.push({id:'r-'+Math.random().toString(36).slice(2,10),step_id:sid,priority:edWf.rules.filter(r=>r.step_id===sid).length+1,condition:'DEFAULT',next_step_id:''});edTab='rules';renderWfModal();}
+async function saveWf(){
+  if(!edWf.name.trim()){alert('Workflow name is required');return;}
+  if(!edWf.steps.length){alert('Add at least one step');return;}
+  edWf.start_step_id=edWf.steps[0].id;
+  try{if(edWf.id)await api('PUT',`/workflows/${edWf.id}`,edWf);else await api('POST','/workflows',edWf);closeModal();render();}
+  catch(e){alert('Error: '+e.message);}
 }
 
-function addStep() {
-  const id = 'step-' + Math.random().toString(36).slice(2,10);
-  editWf.steps = editWf.steps || [];
-  editWf.steps.push({ id, name: 'New Step', step_type: 'task', order: editWf.steps.length+1, metadata: {} });
-  if (!editWf.start_step_id) editWf.start_step_id = id;
-  renderWfModal(document.querySelector('.modal-header h3').textContent, 'steps');
+function openExecuteModal(wf){
+  const fields=wf.input_schema.map(f=>`<div class="form-group"><label>${f.field}${f.required?' *':''} <span style="color:var(--hint);font-weight:400;text-transform:none">(${f.type})</span></label>${f.allowed_values&&f.allowed_values.length?`<select id="ef-${f.field}"><option value="">Select...</option>${f.allowed_values.map(v=>`<option>${v}</option>`).join('')}</select>`:`<input id="ef-${f.field}" type="${f.type==='number'?'number':'text'}" placeholder="${f.type==='number'?'Enter number':'Enter text'}">`}</div>`).join('');
+  showModal(`<div class="modal-head"><h3>Execute: ${wf.name}</h3><button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="font-size:12px;color:var(--muted);margin-bottom:16px">Fill in input data. The rule engine will route through steps automatically.</p>${fields||'<div class="empty-state">No input schema — runs with empty data.</div>'}</div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="run-exec-btn" onclick="runExec('${wf.id}')">▶ Run Workflow</button></div>`);
+}
+async function runExec(wfId){
+  const wf=await api('GET',`/workflows/${wfId}`);const data={};
+  wf.input_schema.forEach(f=>{const el=document.getElementById('ef-'+f.field);if(el)data[f.field]=f.type==='number'?(parseFloat(el.value)||0):el.value;});
+  const btn=document.getElementById('run-exec-btn');if(btn){btn.disabled=true;btn.textContent='Running...';}
+  try{const exec=await api('POST',`/workflows/${wfId}/execute`,{data,triggered_by:'ui_user'});closeModal();switchPage('executions');setTimeout(()=>openExecDetail(exec.id),200);}
+  catch(e){alert('Error: '+e.message);if(btn){btn.disabled=false;btn.textContent='▶ Run Workflow';}}
 }
 
-function addRule(stepId) {
-  editWf.rules = editWf.rules || [];
-  editWf.rules.push({ id: 'r-' + Math.random().toString(36).slice(2,10), step_id: stepId, priority: editWf.rules.filter(r=>r.step_id===stepId).length+1, condition: 'DEFAULT', next_step_id: '' });
-  renderWfModal(document.querySelector('.modal-header h3').textContent, 'rules');
-}
-
-async function saveWf() {
-  if (!editWf.name.trim()) { alert('Workflow name is required'); return; }
-  if (!(editWf.steps||[]).length) { alert('Add at least one step'); return; }
-  editWf.start_step_id = editWf.steps[0].id;
-
-  try {
-    let saved;
-    if (editWf.id) {
-      saved = await api('PUT', '/workflows/' + editWf.id, editWf);
-    } else {
-      saved = await api('POST', '/workflows', editWf);
-      // Save steps
-      for (const s of editWf.steps) {
-        await api('POST', '/workflows/' + saved.id + '/steps', s);
-      }
-      // Save rules
-      for (const r of editWf.rules) {
-        const stepId = editWf.steps.find(s => s.id === r.step_id)?.id;
-        if (stepId) await api('POST', '/steps/' + stepId + '/rules', r);
-      }
-    }
-    closeModal();
-    render();
-  } catch(e) {
-    alert('Error: ' + e.message);
-  }
-}
-
-async function deleteWf(id) {
-  if (!confirm('Delete this workflow and all its steps?')) return;
-  await api('DELETE', '/workflows/' + id);
-  render();
-}
-
-// ─── EXECUTE WORKFLOW ────────────────────────────────────────────────────────
-async function openExecute(id) {
-  const wf = await api('GET', '/workflows/' + id);
-  const fields = (wf.input_schema||[]).map(f => `
-  <div class="form-group">
-    <label>${f.field}${f.required ? ' *' : ''} <span style="color:var(--text3);font-weight:400">(${f.type})</span></label>
-    ${f.allowed_values&&f.allowed_values.length
-      ? `<select id="ei-${f.field}"><option value="">Select…</option>${f.allowed_values.map(v=>`<option>${v}</option>`).join('')}</select>`
-      : `<input id="ei-${f.field}" type="${f.type==='number'?'number':'text'}" placeholder="Enter ${f.type}">`
-    }
-  </div>`).join('');
-
-  openModal(`
-  <div class="modal">
-    <div class="modal-header"><h3>Execute: ${wf.name}</h3><button class="btn btn-sm" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Provide input data. The rule engine will evaluate each step and determine the execution path.</p>
-      ${fields || `<div class="empty" style="padding:20px">No input schema defined.</div>`}
-      <div id="exec-result"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Close</button>
-      <button class="btn btn-primary" id="exec-run-btn" onclick="runExecution('${id}')">▶ Run</button>
-    </div>
-  </div>`);
-}
-
-async function runExecution(wfId) {
-  const btn = document.getElementById('exec-run-btn');
-  btn.disabled = true; btn.textContent = 'Running…';
-  const resDiv = document.getElementById('exec-result');
-
-  const wf = await api('GET', '/workflows/' + wfId).catch(()=>null);
-  const data = {};
-  if (wf) {
-    (wf.input_schema||[]).forEach(f => {
-      const el = document.getElementById('ei-' + f.field);
-      if (el) data[f.field] = f.type === 'number' ? (parseFloat(el.value)||0) : el.value;
-    });
-  }
-
-  try {
-    const exec = await api('POST', '/workflows/' + wfId + '/execute', { data, triggered_by: 'ui_user' });
-    resDiv.innerHTML = `
-    <div class="alert ${exec.status==='completed'?'alert-success':'alert-error'}" style="margin-top:16px">
-      Execution <strong>${exec.id}</strong> — ${exec.status.toUpperCase()}
-    </div>
-    <div class="sum-grid">
-      <div class="sum-card"><div class="sum-label">Steps run</div><div class="sum-val">${exec.logs.length}</div></div>
-      <div class="sum-card"><div class="sum-label">Status</div><div class="sum-val" style="font-size:14px">${exec.status}</div></div>
-      <div class="sum-card"><div class="sum-label">Retries</div><div class="sum-val">${exec.retries}</div></div>
-    </div>
-    ${exec.logs.map(log => `
-    <div class="exec-step ${log.status}">
-      <div class="dot dot-${log.status==='completed'?'done':log.status==='failed'?'failed':'pending'}"></div>
-      <div style="flex:1">
-        <div style="font-weight:500;font-size:13px">${log.step_name} <span class="badge badge-blue" style="font-size:10px">${log.step_type}</span></div>
-        ${log.evaluated_rules.map(r=>`
-        <div class="rule-eval ${r.result?'matched':''}">
-          ${r.result?'✓':'✗'} ${r.rule}
-        </div>`).join('')}
-        ${log.selected_next_step?`<div style="font-size:11px;color:var(--text2);margin-top:4px">→ ${log.selected_next_step}</div>`:'<div style="font-size:11px;color:var(--text2);margin-top:4px">→ End</div>'}
-        ${log.error_message?`<div style="font-size:11px;color:var(--red);margin-top:3px">${log.error_message}</div>`:''}
-      </div>
-    </div>`).join('')}`;
-    btn.disabled = false; btn.textContent = '▶ Run Again';
-  } catch(e) {
-    resDiv.innerHTML = `<div class="alert alert-error" style="margin-top:16px">${e.message}</div>`;
-    btn.disabled = false; btn.textContent = '▶ Run';
-  }
-}
-
-// ─── EXECUTIONS PAGE ─────────────────────────────────────────────────────────
-async function renderExecutions(main) {
-  const execs = await api('GET', '/executions');
-  main.innerHTML = `
-  <div class="topbar"><h2>Executions</h2><span style="font-size:12px;color:var(--text2)">${execs.length} total</span></div>
-  <div class="content">
-    ${execs.length === 0 ? `<div class="empty">No executions yet. Run a workflow to see results here.</div>` : ''}
-    ${execs.map(e => `
-    <div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px;background:var(--bg2)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>
-          <span style="font-weight:500">${e.workflow_id}</span>
-          <span class="chip" style="margin-left:6px">${e.id}</span>
-        </div>
-        <span class="badge ${e.status==='completed'?'badge-green':e.status==='failed'?'badge-red':'badge-amber'}">${e.status}</span>
-      </div>
-      <div style="font-size:12px;color:var(--text2);display:flex;gap:14px;flex-wrap:wrap">
-        <span>v${e.workflow_version}</span>
-        <span>By ${e.triggered_by}</span>
-        <span>${e.started_at.slice(0,10)}</span>
-        <span>${e.logs.length} step(s)</span>
-        ${e.retries>0?`<span style="color:var(--amber)">↻ ${e.retries} retry</span>`:''}
-      </div>
-      <div style="margin-top:10px">
-        ${e.logs.map(log=>`
-        <div class="exec-step ${log.status}" style="padding:8px 10px">
-          <div class="dot dot-${log.status==='completed'?'done':'failed'}"></div>
-          <div>
-            <span style="font-size:12px;font-weight:500">${log.step_name}</span>
-            ${log.selected_next_step?`<span style="font-size:11px;color:var(--text2);margin-left:6px">→ ${log.selected_next_step}</span>`:''}
-          </div>
-        </div>`).join('')}
-      </div>
-      ${e.status==='failed'?`<button class="btn btn-sm" style="margin-top:8px" onclick="retryExec('${e.id}')">↻ Retry</button>`:''}
-    </div>`).join('')}
+async function renderExecuteUI(m){
+  const {data:wfs}=await api('GET','/workflows');
+  m.innerHTML=`<div class="topbar"><div><div class="topbar-title">Execute Workflow</div><div class="topbar-sub">Live animated execution viewer</div></div></div>
+  <div class="content" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+    <div style="width:220px;flex-shrink:0;min-width:160px">${wfs.map(w=>`<div class="card card-sm" style="cursor:pointer;margin-bottom:8px" onclick="startLiveExec('${w.id}')"><div style="font-weight:600;font-size:13px">${w.name}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">v${w.version} · ${(w.steps||[]).length} steps</div></div>`).join('')}${!wfs.length?'<div class="empty-state">No workflows.</div>':''}</div>
+    <div style="flex:1;min-width:0" id="live-exec-area"><div style="padding:40px 20px;text-align:center;color:var(--hint);font-size:13px"><div style="font-size:40px;margin-bottom:12px;opacity:.15">▶</div>Select a workflow to run it live.</div></div>
   </div>`;
 }
+async function startLiveExec(wfId){
+  const wf=await api('GET',`/workflows/${wfId}`);
+  const area=document.getElementById('live-exec-area');
+  const inputHtml=wf.input_schema.map(f=>`<div class="form-group"><label>${f.field}${f.required?' *':''}</label>${f.allowed_values&&f.allowed_values.length?`<select id="li-${f.field}"><option value="">Select…</option>${f.allowed_values.map(v=>`<option>${v}</option>`).join('')}</select>`:`<input id="li-${f.field}" type="${f.type==='number'?'number':'text'}">`}</div>`).join('');
+  area.innerHTML=`<div class="card card-glow" style="margin-bottom:14px"><div style="font-weight:700;margin-bottom:14px">${wf.name} <span style="color:var(--muted);font-weight:400;font-size:12px">— Input Data</span></div>${inputHtml||'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">No inputs required.</div>'}<button class="btn btn-primary" id="live-run-btn" onclick="doLiveRun('${wfId}')">▶ Run</button></div><div id="live-flow"></div>`;
+}
+async function doLiveRun(wfId){
+  const wf=await api('GET',`/workflows/${wfId}`);const data={};
+  wf.input_schema.forEach(f=>{const el=document.getElementById('li-'+f.field);if(el)data[f.field]=f.type==='number'?(parseFloat(el.value)||0):el.value;});
+  document.getElementById('live-run-btn').disabled=true;
+  const flow=document.getElementById('live-flow');
+  flow.innerHTML=wf.steps.map((s,i)=>`<div class="flow-step pending" id="fs-${s.id}"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px"><div style="display:flex;align-items:center;gap:8px"><strong>${s.name}</strong><span class="badge ${s.step_type==='approval'?'badge-blue':s.step_type==='notification'?'badge-pink':'badge-gray'}">${s.step_type}</span></div><span id="fs-icon-${s.id}"></span></div><div id="fs-rules-${s.id}"></div><div id="fs-next-${s.id}" style="font-size:11px;margin-top:4px;font-style:italic;color:var(--muted)"></div></div>${i<wf.steps.length-1?`<div class="flow-arrow" id="fa-${s.id}">↓</div>`:''}`).join('');
+  const exec=await api('POST',`/workflows/${wfId}/execute`,{data,triggered_by:'live_ui'});
+  for(let i=0;i<exec.logs.length;i++){
+    const log=exec.logs[i];const step=wf.steps.find(s=>s.name===log.step_name);if(!step)continue;
+    setFS(step.id,'running');setFSIcon(step.id,'<span class="spinner"></span>');await sleep(800);
+    if(log.evaluated_rules?.length)document.getElementById('fs-rules-'+step.id).innerHTML='<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">'+log.evaluated_rules.map(r=>`<div class="rule-pill ${r.result?'matched':'no-match'}"><div class="r-dot ${r.result?'matched':''}"></div>${r.rule}</div>`).join('')+'</div>';
+    await sleep(400);setFS(step.id,log.status==='failed'?'failed':'done');setFSIcon(step.id,'');
+    document.getElementById('fs-next-'+step.id).textContent=log.selected_next_step?'→ Next: '+log.selected_next_step:'→ Workflow complete';
+    const arr=document.getElementById('fa-'+step.id);if(arr&&log.selected_next_step)arr.classList.add('active');
+    await sleep(300);
+  }
+  flow.innerHTML+=`<div class="card" style="margin-top:14px;border-color:${exec.status==='completed'?'rgba(52,211,153,.3)':'rgba(248,113,113,.3)'}"><div style="font-weight:700;margin-bottom:10px;color:${exec.status==='completed'?'var(--green)':'var(--red)'}">${exec.status==='completed'?'✓ Completed':'✗ Failed'}</div><div class="metric-grid"><div class="metric"><div class="metric-label">Status</div><div class="metric-val" style="font-size:14px;color:${exec.status==='completed'?'var(--green)':'var(--red)'}">${exec.status}</div></div><div class="metric"><div class="metric-label">Steps Run</div><div class="metric-val">${exec.logs.length}</div></div><div class="metric"><div class="metric-label">Rules Checked</div><div class="metric-val">${exec.logs.reduce((a,l)=>a+(l.evaluated_rules||[]).length,0)}</div></div></div><div style="font-size:11px;color:var(--hint);font-family:var(--mono)">ID: ${exec.id}</div></div>`;
+  const btn=document.getElementById('live-run-btn');if(btn){btn.disabled=false;btn.textContent='↺ Run Again';}
+}
+function setFS(id,s){const el=document.getElementById('fs-'+id);if(el)el.className='flow-step '+s;}
+function setFSIcon(id,html){const el=document.getElementById('fs-icon-'+id);if(el)el.innerHTML=html;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-async function retryExec(id) {
-  await api('POST', '/executions/' + id + '/retry');
-  render();
+async function renderExecutions(m){
+  const[{data:execs},{data:wfs}]=await Promise.all([api('GET','/executions'),api('GET','/workflows')]);
+  m.innerHTML=`<div class="topbar"><div><div class="topbar-title">Executions</div><div class="topbar-sub">${execs.length} total runs</div></div></div>
+  <div class="content">${!execs.length?'<div class="empty-state">No executions yet. Run a workflow to see results here.</div>':''}${execs.map(e=>{const wf=wfs.find(w=>w.id===e.workflow_id)||{name:'Unknown'};return `<div class="exec-card" onclick="openExecDetail('${e.id}')"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px"><div><span style="font-weight:600">${wf.name}</span><span class="chip" style="margin-left:8px">${e.id}</span></div><span class="badge ${e.status==='completed'?'badge-green':e.status==='failed'?'badge-red':'badge-amber'}">${e.status}</span></div><div style="font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap"><span>v${e.workflow_version}</span><span style="color:var(--blue)">By ${e.triggered_by}</span><span>${new Date(e.started_at).toLocaleString()}</span><span>${(e.logs||[]).length} step(s)</span>${e.retries>0?`<span style="color:var(--amber)">⟳ ${e.retries} retry</span>`:''}</div></div>`;}).join('')}</div>`;
+}
+async function openExecDetail(execId){
+  const[e,{data:wfs}]=await Promise.all([api('GET',`/executions/${execId}`),api('GET','/workflows')]);
+  const wf=wfs.find(w=>w.id===e.workflow_id)||{name:'Unknown'};
+  showModal(`<div class="modal-head"><h3>Execution Detail</h3><div style="display:flex;gap:8px;align-items:center"><span class="badge ${e.status==='completed'?'badge-green':e.status==='failed'?'badge-red':'badge-amber'}">${e.status}</span><button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button></div></div>
+  <div class="modal-body"><div class="metric-grid"><div class="metric"><div class="metric-label">Workflow</div><div class="metric-val" style="font-size:13px">${wf.name}</div></div><div class="metric"><div class="metric-label">Version</div><div class="metric-val">v${e.workflow_version}</div></div><div class="metric"><div class="metric-label">Triggered By</div><div class="metric-val" style="font-size:13px;color:var(--blue)">${e.triggered_by}</div></div></div>
+  <div class="form-group"><label>Input Data</label><div style="background:var(--bg);border-radius:var(--radius);padding:12px;font-family:var(--mono);font-size:12px;white-space:pre-wrap;border:1px solid var(--border);color:var(--blue);overflow-x:auto">${JSON.stringify(e.data,null,2)}</div></div>
+  <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Step Log</label>
+  ${(e.logs||[]).map(log=>`<div class="card card-sm" style="margin-bottom:8px;border-color:${log.status==='failed'?'rgba(248,113,113,.3)':'var(--border)'}"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap"><span style="color:${log.status==='completed'?'var(--green)':'var(--red)'};font-size:14px">${log.status==='completed'?'✓':'✗'}</span><strong>${log.step_name}</strong><span class="badge ${log.step_type==='approval'?'badge-blue':log.step_type==='notification'?'badge-pink':'badge-gray'}">${log.step_type}</span></div>${(log.evaluated_rules||[]).map(r=>`<div style="font-size:11px;font-family:var(--mono);padding:2px 0;color:${r.result?'var(--green)':'var(--muted)'};word-break:break-all">${r.result?'✓':'✗'} ${r.rule}</div>`).join('')}${log.selected_next_step?`<div style="font-size:12px;color:var(--blue);margin-top:6px">→ ${log.selected_next_step}</div>`:`<div style="font-size:12px;color:var(--muted);margin-top:6px">→ Workflow ended</div>`}${log.approver_id?`<div style="font-size:11px;color:var(--muted);margin-top:3px">Approver: ${log.approver_id}</div>`:''}${log.error_message?`<div style="font-size:11px;color:var(--red);margin-top:3px">Error: ${log.error_message}</div>`:''}</div>`).join('')}
+  </div><div class="modal-foot">${e.status==='failed'?`<button class="btn btn-pink" onclick="retryExec('${e.id}')">⟳ Retry</button>`:''}<button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`);
+}
+async function retryExec(execId){await api('POST',`/executions/${execId}/retry`);closeModal();render();}
+
+async function renderAudit(m){
+  const[{data:execs},{data:wfs}]=await Promise.all([api('GET','/executions'),api('GET','/workflows')]);
+  m.innerHTML=`<div class="topbar"><div><div class="topbar-title">Audit Log</div><div class="topbar-sub">Complete execution history for compliance tracking</div></div></div>
+  <div class="content"><div class="table-wrap"><table><thead><tr><th>Exec ID</th><th>Workflow</th><th>Version</th><th>Status</th><th>Started By</th><th>Start Time</th><th>End Time</th></tr></thead><tbody>
+  ${!execs.length?'<tr><td colspan="7"><div class="empty-state">No executions yet.</div></td></tr>':''}
+  ${execs.map(e=>{const wf=wfs.find(w=>w.id===e.workflow_id)||{name:'Unknown'};return `<tr><td><span class="chip">${e.id}</span></td><td style="font-weight:500">${wf.name}</td><td style="color:var(--muted)">v${e.workflow_version}</td><td><span class="badge ${e.status==='completed'?'badge-green':e.status==='failed'?'badge-red':'badge-amber'}">${e.status}</span></td><td style="color:var(--blue)">${e.triggered_by}</td><td style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">${new Date(e.started_at).toLocaleString()}</td><td style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap">${e.ended_at?new Date(e.ended_at).toLocaleString():'—'}</td></tr>`;}).join('')}
+  </tbody></table></div></div>`;
 }
 
-// ─── AUDIT LOG ───────────────────────────────────────────────────────────────
-async function renderAudit(main) {
-  const execs = await api('GET', '/executions');
-  main.innerHTML = `
-  <div class="topbar"><h2>Audit Log</h2></div>
-  <div class="content">
-    <table>
-      <thead><tr><th>Exec ID</th><th>Workflow</th><th>Version</th><th>Status</th><th>Started By</th><th>Start Time</th><th>End Time</th></tr></thead>
-      <tbody>
-        ${execs.length===0?`<tr><td colspan="7"><div class="empty">No executions yet</div></td></tr>`:''}
-        ${execs.map(e=>`
-        <tr>
-          <td><span class="chip">${e.id}</span></td>
-          <td>${e.workflow_id}</td>
-          <td>v${e.workflow_version}</td>
-          <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='failed'?'badge-red':'badge-amber'}">${e.status}</span></td>
-          <td>${e.triggered_by}</td>
-          <td style="font-family:monospace;font-size:12px">${e.started_at.replace('T',' ').slice(0,19)}</td>
-          <td style="font-family:monospace;font-size:12px">${e.ended_at.replace('T',' ').slice(0,19)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  </div>`;
-}
-
-// ─── API DOCS ────────────────────────────────────────────────────────────────
-function renderApiDocs(main) {
-  const endpoints = [
-    {m:'GET',    p:'/workflows',                        d:'List workflows (supports ?search= & ?page=)'},
-    {m:'POST',   p:'/workflows',                        d:'Create a new workflow'},
-    {m:'GET',    p:'/workflows/:id',                    d:'Get workflow with steps & rules'},
-    {m:'PUT',    p:'/workflows/:id',                    d:'Update workflow (increments version)'},
-    {m:'DELETE', p:'/workflows/:id',                    d:'Delete workflow'},
-    {m:'POST',   p:'/workflows/:workflow_id/steps',     d:'Add a step to a workflow'},
-    {m:'GET',    p:'/workflows/:workflow_id/steps',     d:'List steps for a workflow'},
-    {m:'PUT',    p:'/steps/:id',                        d:'Update a step'},
-    {m:'DELETE', p:'/steps/:id',                        d:'Delete a step'},
-    {m:'POST',   p:'/steps/:step_id/rules',             d:'Add rule to a step'},
-    {m:'GET',    p:'/steps/:step_id/rules',             d:'List rules for a step'},
-    {m:'PUT',    p:'/rules/:id',                        d:'Update a rule'},
-    {m:'DELETE', p:'/rules/:id',                        d:'Delete a rule'},
-    {m:'POST',   p:'/workflows/:workflow_id/execute',   d:'Start workflow execution'},
-    {m:'GET',    p:'/executions',                       d:'List all executions'},
-    {m:'GET',    p:'/executions/:id',                   d:'Get execution status & logs'},
-    {m:'POST',   p:'/executions/:id/cancel',            d:'Cancel a running execution'},
-    {m:'POST',   p:'/executions/:id/retry',             d:'Retry a failed execution'},
-    {m:'GET',    p:'/health',                           d:'Health check'},
-  ];
-  const colors = {GET:'method-get',POST:'method-post',PUT:'method-put',DELETE:'method-delete'};
-  main.innerHTML = `
-  <div class="topbar"><h2>API Documentation</h2></div>
-  <div class="content">
-    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Base URL: <code style="background:var(--bg3);padding:3px 7px;border-radius:4px">http://localhost:3000</code></div>
-    ${endpoints.map(e=>`
-    <div class="api-endpoint">
-      <span class="api-badge ${colors[e.m]}">${e.m}</span>
-      <span style="flex:1;font-weight:500">${e.p}</span>
-      <span style="color:var(--text2);font-family:inherit;font-size:12px">${e.d}</span>
-    </div>`).join('')}
-    <div style="margin-top:20px;font-size:13px">
-      <strong>Rule Engine Operators:</strong>
-      <div style="margin-top:8px;background:var(--bg3);border-radius:var(--radius);padding:12px;font-family:monospace;font-size:12px;line-height:1.8">
-        Comparison: == != &lt; &gt; &lt;= &gt;=<br>
-        Logical: &amp;&amp; (AND) || (OR)<br>
-        String: contains(field, "value") startsWith(field, "prefix") endsWith(field, "suffix")<br>
-        Special: DEFAULT — matches any condition (use as fallback, highest priority number)
-      </div>
-    </div>
-  </div>`;
-}
-
-// ─── MODAL HELPERS ───────────────────────────────────────────────────────────
-function openModal(html) {
-  document.getElementById('modal-root').innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">${html}</div>`;
-}
-function closeModal() {
-  document.getElementById('modal-root').innerHTML = '';
-}
-
+function showModal(html){document.getElementById('modal-root').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;}
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
 render();
 </script>
 </body>
