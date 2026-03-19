@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflow Engine — Automate Your Business Processes</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--bg2:#0c0c1a;--surface:#12122a;--surface2:#18183a;
+  --border:rgba(100,120,255,0.14);--border2:rgba(100,120,255,0.28);
+  --text:#e8e6ff;--muted:#8884c0;--hint:#4a4870;
+  --blue:#5b9bf8;--blue2:#7b6af7;--pink:#f472b6;--pink2:#c084fc;
+  --green:#34d399;--amber:#fbbf24;--red:#f87171;
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+
+/* BG effects */
+.bg-orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(91,155,248,0.12),transparent 70%);top:-100px;right:-100px}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(244,114,182,0.1),transparent 70%);bottom:100px;left:-100px}
+.orb3{width:300px;height:300px;background:radial-gradient(circle,rgba(123,106,247,0.08),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%)}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(91,155,248,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(91,155,248,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,7,15,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--pink));display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px rgba(91,155,248,.4)}
+.nav-logo-text{font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{padding:8px 20px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);text-decoration:none;box-shadow:0 4px 16px rgba(91,155,248,.35);transition:all .2s}
+.nav-cta:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 6px 24px rgba(91,155,248,.45)}
+
+/* Hero */
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(91,155,248,.3);border-radius:20px;background:rgba(91,155,248,.08);font-size:12px;color:var(--blue);font-weight:500;margin-bottom:28px;animation:fadeUp .6s ease both}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-size:clamp(36px,6vw,72px);font-weight:800;line-height:1.1;margin-bottom:24px;animation:fadeUp .6s .1s ease both}
+.hero h1 .grad{background:linear-gradient(135deg,var(--blue),var(--pink2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:clamp(15px,2vw,19px);color:var(--muted);max-width:580px;margin:0 auto 40px;line-height:1.7;animation:fadeUp .6s .2s ease both}
+.hero-actions{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;animation:fadeUp .6s .3s ease both}
+.btn-hero{padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+.btn-hero-primary{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;box-shadow:0 6px 24px rgba(91,155,248,.4)}
+.btn-hero-primary:hover{filter:brightness(1.12);transform:translateY(-2px);box-shadow:0 10px 36px rgba(91,155,248,.5)}
+.btn-hero-secondary{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.btn-hero-secondary:hover{background:var(--surface);border-color:var(--blue);transform:translateY(-2px)}
+
+/* Stats bar */
+.stats-bar{position:relative;z-index:1;display:flex;justify-content:center;gap:0;flex-wrap:wrap;padding:0 24px 60px}
+.stat{padding:20px 40px;text-align:center;border-right:1px solid var(--border);animation:fadeUp .6s ease both}
+.stat:last-child{border-right:none}
+.stat-num{font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+
+/* App preview */
+.preview-section{position:relative;z-index:1;padding:60px 24px;max-width:1100px;margin:0 auto}
+.section-label{font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px;text-align:center}
+.section-title{font-size:clamp(24px,3.5vw,40px);font-weight:700;text-align:center;margin-bottom:14px}
+.section-sub{font-size:15px;color:var(--muted);text-align:center;max-width:520px;margin:0 auto 48px}
+
+.app-preview{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(91,155,248,.08);animation:fadeUp .6s ease both}
+.app-topbar{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dot-row{display:flex;gap:6px}
+.dot-r{width:10px;height:10px;border-radius:50%;background:#f87171}
+.dot-y{width:10px;height:10px;border-radius:50%;background:#fbbf24}
+.dot-g{width:10px;height:10px;border-radius:50%;background:#34d399}
+.app-url{flex:1;background:var(--bg3,#0a0a18);border-radius:6px;padding:4px 12px;font-size:11px;font-family:var(--mono);color:var(--muted);margin:0 12px;border:1px solid var(--border)}
+.app-body{display:flex;height:420px}
+.app-sidebar{width:160px;background:var(--bg2);border-right:1px solid var(--border);padding:12px 8px}
+.app-nav-item{padding:8px 10px;border-radius:7px;font-size:12px;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.app-nav-item.act{background:rgba(91,155,248,.15);color:var(--blue);font-weight:600}
+.app-main{flex:1;background:var(--bg);overflow:hidden;position:relative}
+.app-tbar{padding:10px 16px;background:rgba(7,7,15,.9);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.app-tbar-title{font-size:13px;font-weight:600}
+.app-content{padding:16px}
+.app-table{width:100%;border-collapse:collapse;font-size:11px}
+.app-table th{text-align:left;padding:7px 10px;background:var(--surface);border-bottom:1px solid var(--border);color:var(--hint);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.app-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--muted)}
+.app-table tr:hover td{background:rgba(91,155,248,.04)}
+.mini-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600}
+.mb-green{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.mb-blue{background:rgba(91,155,248,.12);color:var(--blue);border:1px solid rgba(91,155,248,.2)}
+.mini-btn{display:inline-block;padding:2px 8px;border-radius:5px;font-size:9px;font-weight:600;border:none;cursor:pointer;font-family:var(--font)}
+.mb-run{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+.mb-edit{background:transparent;color:var(--blue);border:1px solid rgba(91,155,248,.3)}
+
+/* Features */
+.features{position:relative;z-index:1;padding:80px 24px;max-width:1100px;margin:0 auto}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all .25s;position:relative;overflow:hidden}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--pink));opacity:0;transition:opacity .25s}
+.feat-card:hover{border-color:var(--border2);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.feat-card:hover::before{opacity:1}
+.feat-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.fi-blue{background:rgba(91,155,248,.12);border:1px solid rgba(91,155,248,.2)}
+.fi-pink{background:rgba(244,114,182,.12);border:1px solid rgba(244,114,182,.2)}
+.fi-green{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.2)}
+.fi-amber{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.2)}
+.fi-purple{background:rgba(192,132,252,.12);border:1px solid rgba(192,132,252,.2)}
+.fi-red{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.2)}
+.feat-title{font-size:16px;font-weight:700;margin-bottom:8px}
+.feat-desc{font-size:13px;color:var(--muted);line-height:1.65}
+
+/* How it works */
+.how-section{position:relative;z-index:1;padding:80px 24px;max-width:900px;margin:0 auto}
+.steps-flow{display:flex;flex-direction:column;gap:0}
+.step-item{display:flex;gap:24px;position:relative;padding-bottom:40px}
+.step-item:last-child{padding-bottom:0}
+.step-item:not(:last-child)::before{content:'';position:absolute;left:19px;top:44px;width:2px;bottom:0;background:linear-gradient(180deg,var(--blue),var(--pink));opacity:.3}
+.step-circle{width:40px;height:40px;min-width:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;box-shadow:0 0 20px rgba(91,155,248,.35)}
+.step-content{padding-top:8px}
+.step-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.65}
+.step-code{margin-top:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--blue)}
+
+/* API section */
+.api-section{position:relative;z-index:1;padding:80px 24px;max-width:900px;margin:0 auto}
+.api-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.api-endpoint{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:border-color .2s}
+.api-endpoint:hover{border-color:var(--border2)}
+.api-method{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--mono);margin-bottom:6px}
+.m-post{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.m-get{background:rgba(91,155,248,.12);color:var(--blue);border:1px solid rgba(91,155,248,.2)}
+.m-put{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.m-del{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.api-path{font-family:var(--mono);font-size:12px;color:var(--text);margin-bottom:4px}
+.api-desc{font-size:12px;color:var(--muted)}
+
+/* CTA */
+.cta-section{position:relative;z-index:1;padding:100px 24px;text-align:center}
+.cta-card{max-width:680px;margin:0 auto;background:linear-gradient(135deg,rgba(91,155,248,.1),rgba(244,114,182,.08));border:1px solid rgba(91,155,248,.25);border-radius:24px;padding:60px 40px;position:relative;overflow:hidden}
+.cta-card::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2px;background:linear-gradient(90deg,transparent,var(--blue),var(--pink),transparent)}
+.cta-card h2{font-size:clamp(24px,4vw,40px);font-weight:800;margin-bottom:14px}
+.cta-card p{font-size:15px;color:var(--muted);margin-bottom:32px;line-height:1.7}
+.cta-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+
+/* Footer */
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.footer-logo{font-size:13px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.footer-links{display:flex;gap:20px}
+.footer-links a{font-size:12px;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--text)}
+.footer-copy{font-size:12px;color:var(--hint)}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* Execution demo */
+.exec-demo{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;margin-top:48px}
+.exec-steps{display:flex;flex-direction:column;gap:0}
+.exec-step-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.exec-step-row:last-child{border-bottom:none}
+.exec-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ed-done{background:var(--green);box-shadow:0 0 8px var(--green)}
+.ed-run{background:var(--blue);box-shadow:0 0 8px var(--blue);animation:blink .8s infinite}
+.ed-pend{background:var(--hint)}
+.exec-step-name{font-size:13px;font-weight:500;min-width:160px}
+.exec-step-rule{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1}
+.exec-step-status{font-size:11px;font-weight:600}
+.s-done{color:var(--green)}
+.s-run{color:var(--blue)}
+.s-pend{color:var(--hint)}
+</style>
+</head>
+<body>
+
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+<div class="grid-bg"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">⬡</div>
+    <span class="nav-logo-text">Workflow Engine</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#api">API</a>
+    <a href="#demo">Demo</a>
+  </div>
+  <a href="/index.html" class="nav-cta">Open App →</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div>
+    <div class="hero-badge"><div class="badge-dot"></div> Rule-based Workflow Automation Engine</div>
+    <h1>Automate Any Process<br>with <span class="grad">Smart Rules</span></h1>
+    <p>Build powerful multi-step workflows with conditional logic, dynamic routing, and real-time execution tracking. No code required.</p>
+    <div class="hero-actions">
+      <a href="/index.html" class="btn-hero btn-hero-primary">▶ Open Dashboard</a>
+      <a href="#features" class="btn-hero btn-hero-secondary">See Features ↓</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats-bar reveal">
+  <div class="stat"><div class="stat-num">3</div><div class="stat-label">Step Types</div></div>
+  <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Workflow Rules</div></div>
+  <div class="stat"><div class="stat-num">10+</div><div class="stat-label">API Endpoints</div></div>
+  <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Free to Use</div></div>
+</div>
+
+<!-- App Preview -->
+<section class="preview-section reveal" id="demo">
+  <div class="section-label">Live Preview</div>
+  <h2 class="section-title">Built for Real Workflows</h2>
+  <p class="section-sub">A full dashboard to create, manage, and execute workflows with animated step-by-step execution.</p>
+
+  <div class="app-preview">
+    <div class="app-topbar">
+      <div class="dot-row"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+      <div class="app-url">workflow-engine-qbop.onrender.com</div>
+    </div>
+    <div class="app-body">
+      <div class="app-sidebar">
+        <div style="padding:10px 8px;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#4a4870;text-transform:uppercase;letter-spacing:.08em">Menu</div></div>
+        <div class="app-nav-item act">☰ Workflows</div>
+        <div class="app-nav-item">▶ Execute</div>
+        <div class="app-nav-item">⟳ Executions</div>
+        <div class="app-nav-item">◫ Audit Log</div>
+        <div style="margin-top:auto;padding:12px 8px;position:absolute;bottom:16px">
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#4a4870"><div style="width:5px;height:5px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399"></div>Running</div>
+        </div>
+      </div>
+      <div class="app-main">
+        <div class="app-tbar">
+          <div class="app-tbar-title">Workflows</div>
+          <div style="display:flex;gap:6px"><button class="mini-btn mb-run">+ New</button></div>
+        </div>
+        <div class="app-content">
+          <table class="app-table">
+            <thead><tr><th>ID</th><th>Name</th><th>Steps</th><th>Version</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><span style="font-family:var(--mono);font-size:9px;color:#4a4870;background:#0c0c1a;padding:1px 5px;border-radius:3px">wf-001</span></td><td style="font-weight:600;font-size:12px">Expense Approval</td><td style="color:#5b9bf8;font-weight:600">4</td><td style="color:#4a4870">v3</td><td><span class="mini-badge mb-green">Active</span></td><td style="display:flex;gap:4px"><button class="mini-btn mb-edit">Edit</button><button class="mini-btn mb-run">▶ Run</button></td></tr>
+              <tr><td><span style="font-family:var(--mono);font-size:9px;color:#4a4870;background:#0c0c1a;padding:1px 5px;border-radius:3px">wf-002</span></td><td style="font-weight:600;font-size:12px">Employee Onboarding</td><td style="color:#5b9bf8;font-weight:600">2</td><td style="color:#4a4870">v1</td><td><span class="mini-badge mb-green">Active</span></td><td style="display:flex;gap:4px"><button class="mini-btn mb-edit">Edit</button><button class="mini-btn mb-run">▶ Run</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Execution demo -->
+  <div class="exec-demo reveal">
+    <div style="font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <span style="color:var(--blue)">▶</span> Live Execution — Expense Approval
+      <span class="mini-badge mb-green" style="margin-left:auto">completed</span>
+    </div>
+    <div class="exec-steps">
+      <div class="exec-step-row">
+        <div class="exec-dot ed-done"></div>
+        <div class="exec-step-name">Manager Approval</div>
+        <div class="exec-step-rule">amount > 100 && country == "US" && priority == "High" ✓</div>
+        <div class="exec-step-status s-done">✓ completed</div>
+      </div>
+      <div class="exec-step-row">
+        <div class="exec-dot ed-done"></div>
+        <div class="exec-step-name">CEO Approval</div>
+        <div class="exec-step-rule">DEFAULT ✓ → matched, routed here</div>
+        <div class="exec-step-status s-done">✓ completed</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;font-size:11px;font-family:var(--mono);color:var(--hint)">input: amount=250 · country=US · priority=High · 2 rules evaluated · 2 steps completed</div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features reveal" id="features">
+  <div class="section-label">What's Inside</div>
+  <h2 class="section-title">Everything You Need</h2>
+  <p class="section-sub">Built with Node.js + Express backend and a fully interactive frontend dashboard.</p>
+
+  <div class="feat-grid">
+    <div class="feat-card reveal">
+      <div class="feat-icon fi-blue">⬡</div>
+      <div class="feat-title">Workflow Builder</div>
+      <div class="feat-desc">Create multi-step workflows with a visual editor. Define input schemas, configure steps, and set up routing rules — all from the dashboard.</div>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon fi-pink">⚡</div>
+      <div class="feat-title">Rule Engine</div>
+      <div class="feat-desc">Powerful condition evaluator supporting <code style="background:var(--bg3,#0a0a18);padding:1px 5px;border-radius:3px;font-size:11px">&&</code>, <code style="background:var(--bg3,#0a0a18);padding:1px 5px;border-radius:3px;font-size:11px">||</code>, comparisons, and DEFAULT fallbacks. Priority-ordered evaluation for precise routing.</div>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon fi-green">▶</div>
+      <div class="feat-title">Live Execution</div>
+      <div class="feat-desc">Watch workflows execute in real-time with animated step transitions. See rule evaluations, matched conditions, and next-step routing as they happen.</div>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon fi-amber">🔗</div>
+      <div class="feat-title">REST API</div>
+      <div class="feat-desc">Full CRUD API for workflows, steps, rules, and executions. 10+ endpoints for integration with any external system or frontend.</div>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon fi-purple">📋</div>
+      <div class="feat-title">Audit Log</div>
+      <div class="feat-desc">Complete execution history for compliance and tracking. Every rule evaluation, step transition, and approver action is recorded with timestamps.</div>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon fi-red">⟳</div>
+      <div class="feat-title">Retry & Recovery</div>
+      <div class="feat-desc">Failed executions can be retried from the failed step only — not the entire workflow. Version control ensures reproducibility across retries.</div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how-section reveal" id="how">
+  <div class="section-label">How It Works</div>
+  <h2 class="section-title" style="text-align:center">From Creation to Execution</h2>
+  <p class="section-sub" style="margin-bottom:48px">Set up a workflow in minutes and start automating your processes.</p>
+
+  <div class="steps-flow">
+    <div class="step-item reveal">
+      <div class="step-circle">1</div>
+      <div class="step-content">
+        <div class="step-title">Create a Workflow</div>
+        <div class="step-desc">Define the workflow name, input schema (fields, types, allowed values), and configure your steps — Task, Approval, or Notification.</div>
+        <div class="step-code">POST /api/workflows → { name: "Expense Approval", steps: [...] }</div>
+      </div>
+    </div>
+    <div class="step-item reveal">
+      <div class="step-circle">2</div>
+      <div class="step-content">
+        <div class="step-title">Add Rules to Steps</div>
+        <div class="step-desc">Define conditions for each step. Rules are evaluated by priority order — the first matching rule decides the next step to execute.</div>
+        <div class="step-code">{ condition: 'amount > 100 && priority == "High"', next_step_id: "ceo-approval" }</div>
+      </div>
+    </div>
+    <div class="step-item reveal">
+      <div class="step-circle">3</div>
+      <div class="step-content">
+        <div class="step-title">Execute with Input Data</div>
+        <div class="step-desc">Trigger a workflow execution by submitting input data. The rule engine evaluates conditions at each step and routes automatically.</div>
+        <div class="step-code">POST /api/workflows/wf-001/execute → { data: { amount: 250, country: "US" } }</div>
+      </div>
+    </div>
+    <div class="step-item reveal">
+      <div class="step-circle">4</div>
+      <div class="step-content">
+        <div class="step-title">Track & Audit</div>
+        <div class="step-desc">View execution logs showing every rule evaluated, step completed, and decision made. Retry failed steps without restarting the entire workflow.</div>
+        <div class="step-code">GET /api/executions/:id → { logs: [...], status: "completed" }</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- API Reference -->
+<section class="api-section reveal" id="api">
+  <div class="section-label">REST API</div>
+  <h2 class="section-title" style="text-align:center">Full API Reference</h2>
+  <p class="section-sub" style="margin-bottom:40px">All endpoints return JSON. Base URL: <code style="font-family:var(--mono);font-size:13px;color:var(--blue)">/api</code></p>
+
+  <div class="api-grid">
+    <div class="api-endpoint"><span class="api-method m-get">GET</span><div class="api-path">/workflows</div><div class="api-desc">List all workflows with search & pagination</div></div>
+    <div class="api-endpoint"><span class="api-method m-post">POST</span><div class="api-path">/workflows</div><div class="api-desc">Create a new workflow</div></div>
+    <div class="api-endpoint"><span class="api-method m-get">GET</span><div class="api-path">/workflows/:id</div><div class="api-desc">Get workflow with steps & rules</div></div>
+    <div class="api-endpoint"><span class="api-method m-put">PUT</span><div class="api-path">/workflows/:id</div><div class="api-desc">Update workflow (auto-increments version)</div></div>
+    <div class="api-endpoint"><span class="api-method m-del">DELETE</span><div class="api-path">/workflows/:id</div><div class="api-desc">Delete a workflow</div></div>
+    <div class="api-endpoint"><span class="api-method m-post">POST</span><div class="api-path">/workflows/:id/execute</div><div class="api-desc">Start workflow execution with input data</div></div>
+    <div class="api-endpoint"><span class="api-method m-get">GET</span><div class="api-path">/executions/:id</div><div class="api-desc">Get execution status & step logs</div></div>
+    <div class="api-endpoint"><span class="api-method m-post">POST</span><div class="api-path">/executions/:id/retry</div><div class="api-desc">Retry only the failed step</div></div>
+    <div class="api-endpoint"><span class="api-method m-post">POST</span><div class="api-path">/steps/:stepId/rules</div><div class="api-desc">Add a rule to a step</div></div>
+    <div class="api-endpoint"><span class="api-method m-put">PUT</span><div class="api-path">/rules/:id</div><div class="api-desc">Update a rule condition or priority</div></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section reveal">
+  <div class="cta-card">
+    <h2>Ready to Automate?</h2>
+    <p>Open the dashboard, create your first workflow, and run it in under 2 minutes. No setup required.</p>
+    <div class="cta-btns">
+      <a href="/index.html" class="btn-hero btn-hero-primary">▶ Open Dashboard</a>
+      <a href="https://github.com/gopikamuthu/workflow-engine" target="_blank" class="btn-hero btn-hero-secondary">View on GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">⬡ Workflow Engine</div>
+  <div class="footer-links">
+    <a href="/index.html">Dashboard</a>
+    <a href="#features">Features</a>
+    <a href="#api">API Docs</a>
+    <a href="https://github.com/gopikamuthu/workflow-engine" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">© 2026 Gopika · Built with Node.js + Express</div>
+</footer>
+
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
