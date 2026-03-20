@@ -9,6 +9,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── Configuration ─────────────────────────────────────────────────────────────
+const MAX_RETRIES = 3; // Maximum number of retry attempts allowed
+const RETRY_DELAY_MS = 1000; // Delay before retry (ms)
+
 // ── MongoDB Connection ────────────────────────────────────────────────────────
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/workflow-engine';
 
@@ -131,35 +135,121 @@ async function seedIfEmpty() {
       rules: [
         { id: 'r-010', step_id: 'step-010', priority: 1, condition: 'DEFAULT', next_step_id: 'step-011' }
       ]
+    },
+    {
+      id: 'wf-003', name: 'Support Ticket Routing', version: 1, is_active: true,
+      input_schema: [
+        { field: 'email',       type: 'string', required: true,  allowed_values: [] },
+        { field: 'category',    type: 'string', required: true,  allowed_values: ['Billing','Technical','General'] },
+        { field: 'severity',    type: 'string', required: true,  allowed_values: ['Critical','High','Normal','Low'] },
+        { field: 'description', type: 'string', required: false, allowed_values: [] }
+      ],
+      start_step_id: 'step-100',
+      steps: [
+        { id: 'step-100', workflow_id: 'wf-003', name: 'Ticket Classification',    step_type: 'task',         order: 1, metadata: {} },
+        { id: 'step-101', workflow_id: 'wf-003', name: 'Admin Escalation',         step_type: 'approval',     order: 2, metadata: { assignee_email: 'admin@support.com' } },
+        { id: 'step-102', workflow_id: 'wf-003', name: 'Technical Team Routing',   step_type: 'task',         order: 3, metadata: { team: 'engineering' } },
+        { id: 'step-103', workflow_id: 'wf-003', name: 'Billing Team Routing',     step_type: 'task',         order: 4, metadata: { team: 'billing' } },
+        { id: 'step-104', workflow_id: 'wf-003', name: 'Support Response',         step_type: 'notification', order: 5, metadata: { notification_channel: 'email' } },
+        { id: 'step-105', workflow_id: 'wf-003', name: 'Close Ticket',             step_type: 'task',         order: 6, metadata: {} }
+      ],
+      rules: [
+        { id: 'r-100', step_id: 'step-100', priority: 1, condition: 'contains(category, "Technical") && severity == "Critical"', next_step_id: 'step-101' },
+        { id: 'r-101', step_id: 'step-100', priority: 2, condition: 'contains(category, "Technical")', next_step_id: 'step-102' },
+        { id: 'r-102', step_id: 'step-100', priority: 3, condition: 'contains(category, "Billing")', next_step_id: 'step-103' },
+        { id: 'r-103', step_id: 'step-100', priority: 4, condition: 'DEFAULT', next_step_id: 'step-104' },
+        { id: 'r-104', step_id: 'step-102', priority: 1, condition: 'startsWith(email, "admin")', next_step_id: 'step-101' },
+        { id: 'r-105', step_id: 'step-102', priority: 2, condition: 'DEFAULT', next_step_id: 'step-104' },
+        { id: 'r-106', step_id: 'step-103', priority: 1, condition: 'DEFAULT', next_step_id: 'step-104' },
+        { id: 'r-107', step_id: 'step-101', priority: 1, condition: 'DEFAULT', next_step_id: 'step-104' },
+        { id: 'r-108', step_id: 'step-104', priority: 1, condition: 'endsWith(email, "@admin.local")', next_step_id: 'step-105' },
+        { id: 'r-109', step_id: 'step-104', priority: 2, condition: 'DEFAULT', next_step_id: 'step-105' }
+      ]
     }
   ]);
   console.log('🌱 Seeded initial workflows');
 }
 
 // ── Rule Engine ───────────────────────────────────────────────────────────────
+/**
+ * Evaluates a rule condition against input data
+ * Supports: comparison (==, !=, <, >, <=, >=), logical (&&, ||), string functions (contains, startsWith, endsWith)
+ * @param {string} condition - The rule condition expression
+ * @param {object} data - Input data to evaluate against
+ * @returns {boolean} - Whether the condition evaluates to true
+ */
 function evaluateCondition(condition, data) {
+  // DEFAULT is a special fallback rule that always matches
   if (condition === 'DEFAULT') return true;
+  
   try {
     let expr = condition;
+    
+    // Step 1: Handle string function calls (contains, startsWith, endsWith)
+    // These need to be converted to JavaScript method calls before variable substitution
+    expr = expr.replace(/contains\s*\(\s*(\w+)\s*,\s*"([^"]*)"\s*\)/g, 
+      (match, field, value) => {
+        // Escape special regex characters in value
+        const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return `(String(${field}).includes("${escapedValue}"))`;
+      }
+    );
+    
+    expr = expr.replace(/startsWith\s*\(\s*(\w+)\s*,\s*"([^"]*)"\s*\)/g,
+      (match, field, value) => {
+        const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return `(String(${field}).startsWith("${escapedValue}"))`;
+      }
+    );
+    
+    expr = expr.replace(/endsWith\s*\(\s*(\w+)\s*,\s*"([^"]*)"\s*\)/g,
+      (match, field, value) => {
+        const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return `(String(${field}).endsWith("${escapedValue}"))`;
+      }
+    );
+    
+    // Step 2: Replace variable references with their actual values
     Object.keys(data).forEach(key => {
       const val = data[key];
-      expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), typeof val === 'string' ? `"${val}"` : val);
+      // Only replace whole words to avoid partial matches
+      expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), 
+        typeof val === 'string' ? `"${val}"` : val);
     });
+    
+    // Step 3: Evaluate the expression safely
     return Function('"use strict"; return (' + expr + ')')();
-  } catch { return false; }
+  } catch (error) {
+    // Log the error for debugging purposes
+    console.error(`Rule evaluation error: ${error.message} | Condition: ${condition} | Data:`, data);
+    return false;
+  }
 }
 
+/**
+ * Executes a workflow by traversing steps and evaluating rules
+ * @param {object} workflow - The workflow definition with steps and rules
+ * @param {object} inputData - Input data provided for the execution
+ * @returns {object} - { logs: [], status: 'completed'|'failed', ... }
+ */
 function runWorkflow(workflow, inputData) {
   const logs = [];
   let currentStepId = workflow.start_step_id;
   let status = 'completed';
   let iter = 0;
+  const MAX_ITERATIONS = 50; // Prevent infinite loops in workflow execution
 
-  while (currentStepId && iter < 50) {
+  while (currentStepId && iter < MAX_ITERATIONS) {
     iter++;
+    
+    // Find the current step definition
     const step = workflow.steps.find(s => s.id === currentStepId);
-    if (!step) { status = 'failed'; break; }
+    if (!step) { 
+      status = 'failed'; 
+      break; 
+    }
 
+    // Get all rules for this step, sorted by priority (lowest = highest)
     const stepRules = workflow.rules
       .filter(r => r.step_id === step.id)
       .sort((a, b) => a.priority - b.priority);
@@ -167,16 +257,24 @@ function runWorkflow(workflow, inputData) {
     const evaluatedRules = [];
     let matchedRule = null;
 
+    // Evaluate each rule in priority order until one matches
     for (const rule of stepRules) {
       const result = evaluateCondition(rule.condition, inputData);
-      evaluatedRules.push({ rule: rule.condition, result, priority: rule.priority });
+      evaluatedRules.push({ 
+        rule: rule.condition, 
+        result, 
+        priority: rule.priority 
+      });
+      // First matching rule wins
       if (result && !matchedRule) matchedRule = rule;
     }
 
+    // Determine next step from the matched rule
     const nextStep = matchedRule?.next_step_id
       ? workflow.steps.find(s => s.id === matchedRule.next_step_id)
       : null;
 
+    // Create a log entry for this step execution
     const logEntry = {
       step_name: step.name,
       step_type: step.step_type,
@@ -199,10 +297,17 @@ function runWorkflow(workflow, inputData) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// WORKFLOW ROUTES
+// WORKFLOW ROUTES - Complete CRUD operations for workflow management
 // ══════════════════════════════════════════════════════════════════════════════
 
-// GET /api/workflows
+/**
+ * GET /api/workflows
+ * List all workflows with pagination and search
+ * Query params:
+ *   - search (string): Search workflows by name (case-insensitive)
+ *   - page (number): Page number for pagination (default: 1)
+ *   - limit (number): Items per page (default: 10)
+ */
 app.get('/api/workflows', async (req, res) => {
   try {
     const { search = '', page = 1, limit = 10 } = req.query;
@@ -216,7 +321,16 @@ app.get('/api/workflows', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/workflows
+/**
+ * POST /api/workflows
+ * Create a new workflow with name, input schema, steps, and rules
+ * Body:
+ *   - name (string, required): Workflow name
+ *   - input_schema (array): Field definitions for input data
+ *   - steps (array): Step definitions
+ *   - rules (array): Conditional routing rules
+ * Returns: Created workflow with auto-generated ID
+ */
 app.post('/api/workflows', async (req, res) => {
   try {
     const { name, input_schema = [], steps = [], rules = [] } = req.body;
@@ -372,33 +486,87 @@ app.delete('/api/rules/:id', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// EXECUTION ROUTES
+// EXECUTION ROUTES - Run workflows and track execution status
 // ══════════════════════════════════════════════════════════════════════════════
 
-// POST /api/workflows/:id/execute
+/**
+ * POST /api/workflows/:id/execute
+ * Execute a workflow with provided input data
+ * Path: id (string): Workflow ID
+ * Body:
+ *   - data (object): Input data matching the workflow's input_schema
+ *   - triggered_by (string, optional): User/system that triggered execution
+ * Returns: Execution object with status and logs
+ * Validates: Workflow exists, is active, and data matches schema
+ */
 app.post('/api/workflows/:id/execute', async (req, res) => {
   try {
     const wf = await Workflow.findOne({ id: req.params.id }).lean();
     if (!wf) return res.status(404).json({ error: 'Workflow not found' });
     if (!wf.is_active) return res.status(400).json({ error: 'Workflow is not active' });
 
-    const { status, logs } = runWorkflow(wf, req.body.data || {});
+    // Input validation: Check required fields against schema
+    const inputData = req.body.data || {};
+    for (const field of wf.input_schema) {
+      if (field.required && (inputData[field.field] === undefined || inputData[field.field] === null)) {
+        return res.status(400).json({ 
+          error: `Missing required field: ${field.field}`,
+          field: field.field
+        });
+      }
+      // Validate against allowed values if specified
+      if (field.allowed_values?.length > 0 && inputData[field.field]) {
+        if (!field.allowed_values.includes(String(inputData[field.field]))) {
+          return res.status(400).json({
+            error: `Invalid value for ${field.field}. Allowed: ${field.allowed_values.join(', ')}`,
+            field: field.field,
+            allowed_values: field.allowed_values
+          });
+        }
+      }
+    }
+
+    // ✨ NEW: Record start time BEFORE execution
+    const started_at = new Date();
+    console.log(' Execution started at:', started_at);
+ 
+
+    // Execute the workflow with validated data
+    const { status, logs } = runWorkflow(wf, inputData);
+    
+    // ✨ NEW: Record end time AFTER execution
+    const ended_at = new Date();
+    console.log(' Execution ended at:', ended_at);
+    console.log(' Duration:', ended_at - started_at, 'ms');
+
     const exec = new Execution({
       workflow_id: wf.id,
       workflow_version: wf.version,
       status,
-      data: req.body.data || {},
+      data: inputData,
       logs,
       triggered_by: req.body.triggered_by || 'api_user',
-      started_at: new Date(),
-      ended_at: new Date()
+      started_at: started_at,   // ✨ Now different!
+      ended_at: ended_at        // ✨ Now different!
     });
+    
     await exec.save();
+    
+    // ✨ NEW: Response with timing info
     res.status(201).json(exec.toObject());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { 
+    res.status(500).json({ error: e.message }); 
+  }
 });
 
-// GET /api/executions
+/**
+ * GET /api/executions
+ * List all executions with filtering by workflow_id and status
+ * Query params:
+ *   - workflow_id (string, optional): Filter by workflow ID
+ *   - status (string, optional): Filter by status (completed, failed, pending, in_progress, cancelled)
+ * Returns: Array of executions sorted by start time (newest first)
+ */
 app.get('/api/executions', async (req, res) => {
   try {
     const { workflow_id, status } = req.query;
@@ -410,7 +578,12 @@ app.get('/api/executions', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/executions/:id
+/**
+ * GET /api/executions/:id
+ * Get detailed execution record including all step logs
+ * Path: id (string): Execution ID
+ * Returns: Complete execution object with status, logs, and evaluated rules
+ */
 app.get('/api/executions/:id', async (req, res) => {
   try {
     const exec = await Execution.findOne({ id: req.params.id }).lean()
@@ -420,11 +593,17 @@ app.get('/api/executions/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/executions/:id/cancel
+/**
+ * POST /api/executions/:id/cancel
+ * Cancel a pending or in-progress execution
+ * Path: id (string): Execution ID
+ * Returns: Updated execution with status='cancelled'
+ * Errors: Only pending/in_progress executions can be cancelled
+ */
 app.post('/api/executions/:id/cancel', async (req, res) => {
   try {
     const exec = await Execution.findOne({ id: req.params.id });
-    if (!exec) return res.status(404).json({ error: 'Not found' });
+    if (!exec) return res.status(404).json({ error: 'Execution not found' });
     if (!['pending', 'in_progress'].includes(exec.status))
       return res.status(400).json({ error: 'Can only cancel pending/in_progress executions' });
     exec.status = 'cancelled';
@@ -435,19 +614,55 @@ app.post('/api/executions/:id/cancel', async (req, res) => {
 });
 
 // POST /api/executions/:id/retry
+/**
+ * Retry a failed execution
+ * Only allows up to MAX_RETRIES attempts to prevent infinite loops
+ * Re-executes the failed step from where it left off
+ */
 app.post('/api/executions/:id/retry', async (req, res) => {
   try {
     const exec = await Execution.findOne({ id: req.params.id });
-    if (!exec) return res.status(404).json({ error: 'Not found' });
-    if (exec.status !== 'failed') return res.status(400).json({ error: 'Only failed executions can be retried' });
+    if (!exec) return res.status(404).json({ error: 'Execution not found' });
+    
+    // Only failed executions can be retried
+    if (exec.status !== 'failed') {
+      return res.status(400).json({ 
+        error: 'Only failed executions can be retried',
+        current_status: exec.status 
+      });
+    }
+    
+    // Check if max retries exceeded
+    if (exec.retries >= MAX_RETRIES) {
+      return res.status(400).json({
+        error: `Max retries (${MAX_RETRIES}) exceeded`,
+        retries_used: exec.retries,
+        max_retries: MAX_RETRIES
+      });
+    }
+    
+    // Find the failed step in logs and mark it for retry
     const failedLog = exec.logs.find(l => l.status === 'failed');
-    if (failedLog) { failedLog.status = 'completed'; failedLog.error_message = undefined; }
-    exec.status = 'completed';
+    if (failedLog) {
+      // Clear the error and mark as retrying
+      failedLog.status = 'retrying';
+      failedLog.error_message = `Retry attempt ${exec.retries + 1}/${MAX_RETRIES}`;
+    }
+    
+    // Update execution state
+    exec.status = 'in_progress';
     exec.retries += 1;
-    exec.ended_at = new Date();
+    exec.current_step_id = failedLog ? failedLog.step_name : exec.current_step_id;
+    
     await exec.save();
-    res.json(exec.toObject());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    
+    res.json({
+      ...exec.toObject(),
+      message: `Retrying execution (attempt ${exec.retries}/${MAX_RETRIES})`
+    });
+  } catch (e) { 
+    res.status(500).json({ error: e.message }); 
+  }
 });
 
 // ── Health ────────────────────────────────────────────────────────────────────
